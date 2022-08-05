@@ -130,6 +130,8 @@ cp -v axcf3_deps/lib/libgrpc++_alts.so.1 /opt/ros/$ROS_DISTRO/lib
 cp -v axcf3_deps/lib/libabsl_random_internal_distribution_test_util.so /opt/ros/$ROS_DISTRO/lib
 cp -v axcf3_deps/lib/libabsl_random_internal_randen_hwaes_impl.so /opt/ros/$ROS_DISTRO/lib
 cp -v axcf3_deps/lib/libabsl_statusor.so /opt/ros/$ROS_DISTRO/lib
+cp -v axcf3_deps/lib/libssl.so.1.1 /opt/ros/$ROS_DISTRO/lib
+cp -v axcf3_deps/lib/libcrypto.so.1.1 /opt/ros/$ROS_DISTRO/lib
 
 # CMake modules
 
@@ -139,4 +141,4 @@ cp -rv axcf3_deps/cmake_modules/ros/re2 /opt/ros/$ROS_DISTRO/lib/cmake
 cp -rv axcf3_deps/cmake_modules/ros/absl /opt/ros/$ROS_DISTRO/lib/cmake
 cp -rv axcf3_deps/cmake_modules/ros/c-ares /opt/ros/$ROS_DISTRO/lib/cmake
 
-cp -rv axcf3_deps/cmake_modules/usr/Modules  /usr/share/cmake-3.16/Modules/
+cp -rv axcf3_deps/cmake_modules/usr/Modules  /usr/share/cmake-3.22/Modules/
