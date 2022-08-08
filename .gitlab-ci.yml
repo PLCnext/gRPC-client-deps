@@ -1,4 +1,4 @@
-variables: 
+variables:
   DOCKER_BUILDKIT: 1
   DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
@@ -9,7 +9,7 @@ variables:
   ROSINSTALL_CI_JOB_TOKEN: "true"
   FOLDER: ${CI_JOB_NAME}
   ROS_DISTRO: ""
-  ROS_DISTROS: noetic foxy
+  ROS_DISTROS: noetic foxy humble
   NAME: ${CI_JOB_NAME}
   TARGET_LATEST: ${CI_REGISTRY_IMAGE}/${NAME}:latest
   TARGET_BRANCH: ${CI_REGISTRY_IMAGE}/${NAME}:${CI_COMMIT_REF_NAME//\//-}
@@ -65,11 +65,11 @@ prepare:
   before_script:
     - !reference [.common, docker_login]
   script:
-    - TARGET=${CI_REGISTRY_IMAGE}/${NAME}:${CI_COMMIT_REF_NAME//\//-}; 
+    - TARGET=${CI_REGISTRY_IMAGE}/${NAME}:${CI_COMMIT_REF_NAME//\//-};
     - >
-      docker build 
-      --cache-from $TARGET 
-      --cache-from $TARGET_LATEST 
+      docker build
+      --cache-from $TARGET
+      --cache-from $TARGET_LATEST
       --cache-from $TARGET_BRANCH
       --build-arg SUFFIX
       --build-arg PREFIX
