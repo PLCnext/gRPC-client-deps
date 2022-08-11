@@ -15,6 +15,7 @@ cp -rv axcf3_deps/include/protocols /opt/ros/$ROS_DISTRO/include/protocols
 cp -rv axcf3_deps/include/grpcpp /opt/ros/$ROS_DISTRO/include/grpcpp
 cp -rv axcf3_deps/include/grpc /opt/ros/$ROS_DISTRO/include/grpc
 cp -rv axcf3_deps/include/grpc++ /opt/ros/$ROS_DISTRO/include/grpc++
+cp -rv axcf3_deps/include/openssl /opt/ros/$ROS_DISTRO/include/openssl
 
 # Shared libraries
 
@@ -130,6 +131,10 @@ cp -v axcf3_deps/lib/libgrpc++_alts.so.1 /opt/ros/$ROS_DISTRO/lib
 cp -v axcf3_deps/lib/libabsl_random_internal_distribution_test_util.so /opt/ros/$ROS_DISTRO/lib
 cp -v axcf3_deps/lib/libabsl_random_internal_randen_hwaes_impl.so /opt/ros/$ROS_DISTRO/lib
 cp -v axcf3_deps/lib/libabsl_statusor.so /opt/ros/$ROS_DISTRO/lib
+cp -v axcf3_deps/lib/libcrypto.so /opt/ros/$ROS_DISTRO/lib
+cp -v axcf3_deps/lib/libssl.so /opt/ros/$ROS_DISTRO/lib
+cp -v axcf3_deps/lib/libcrypto.so.1.1 /opt/ros/$ROS_DISTRO/lib
+cp -v axcf3_deps/lib/libssl.so.1.1 /opt/ros/$ROS_DISTRO/lib
 
 # CMake modules
 

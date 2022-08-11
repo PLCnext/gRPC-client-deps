@@ -22,7 +22,7 @@ Current latest version for AXCF3xxx: `2022.00`
 
 `dep_copy.sh` copies the deps from this directory to where they need to go. Must be executed from the `plcnext_deps` folder with an argument naming the ROS distro.
 
-Ex: `../image_builder/plcnext_deps$ ./dep_copy.sh noetic`
+Ex: `../plcnext_deps$ ./dep_copy.sh noetic`
 
 
 ### `test_code`
