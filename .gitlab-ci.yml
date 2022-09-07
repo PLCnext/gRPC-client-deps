@@ -1,58 +1,60 @@
+include:
+  - local: ci/gitlab_templates/RULES.yml
+
 variables:
+  ARTIFACT_PATH: ${CI_PROJECT_DIR}/result
+  BUILDER_PREFIX: "ghcr.io/ipa-rwu/"
+  BUILDER_SUFFIX: ":latest"
+  BRIDGE_PROJECT_NUMBER: 1141
+  CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=RELEASE"
+  DEFAULT_ROS_DISTROS: noetic foxy galactic rolling humble $CURRENT_ROS_DISTRO
   DOCKER_BUILDKIT: 1
   DOCKER_TLS_CERTDIR: ""
-  DOCKER_DRIVER: overlay2
-  SUFFIX: ""
-  PREFIX: "${CI_REGISTRY_IMAGE}/${CI_PIPELINE_ID}:"
-  BUILDER_PREFIX: "registry.gitlab.cc-asp.fraunhofer.de/ipa326/docker_ros_builder/"
-  BUILDER_SUFFIX: ":latest"
-  ROSINSTALL_CI_JOB_TOKEN: "true"
-  FOLDER: ${CI_JOB_NAME}
-  ROS_DISTRO: ""
-  ROS_DISTROS: noetic foxy galactic rolling humble
+  FOLDER: ${CI_JOB_NAME}/
+  NAME: ${CI_JOB_NAME}
+  PREFIX: "${CI_PIPELINE_ID}:"
+  ROS_DISTROS: foxy galactic humble noetic rolling
   ROS1_DISTROS: noetic
   ROS2_DISTROS: foxy galactic rolling humble
-  NAME: ${CI_JOB_NAME}
-  TARGET_LATEST: ${CI_REGISTRY_IMAGE}/${NAME}:latest
-  TARGET_BRANCH: ${CI_REGISTRY_IMAGE}/${NAME}:${CI_COMMIT_REF_NAME//\//-}
-  TARGET_RELEASE: ${CI_REGISTRY_IMAGE}/${NAME}:${CI_COMMIT_TAG//\//-}
-  CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Release"
-
-.docker_service_tag:
-  services: &docker_service
-    - docker:dind
-  tags: &docker_runner
-      - docker-build
-
-.simple_runner:
-  tags: &simple_runner
-    - asprunner
+  STABLE_BRANCH: devel
+  SUFFIX: ""
+  TARGET_LATEST: ${NAME}:latest
+  TARGET_RELEASE: ${NAME}:${CI_COMMIT_TAG//\//-}
 
 .common:
-  docker_login:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-
-stages:
-  - check_ros_distro
-  - phoenix_dependencies
-  - publish
-  - cleanup
-  - trigger_bridge
+  tags: &kaniko_runner
+    - shared-runner-kubernetes
+  create_release_tag_script:
+    - |
+      if [ "$CI_COMMIT_REF_NAME" = "main" ] || [ "$CI_COMMIT_REF_NAME" = "master" ]; then
+        TARGET=$TARGET_LATEST
+      fi
+      if [[ $(expr match "$CI_COMMIT_REF_NAME" ".*$STABLE_BRANCH") != 0 ]]; then
+        TARGET=$TARGET_LATEST
+      fi
+      if [ $CI_COMMIT_TAG ]; then
+        convert_tag=${CI_COMMIT_TAG//\//-}
+        distro_prefix=${ROS_DISTRO}-
+        remove_distro_tag=${convert_tag#"$distro_prefix"}
+        TARGET_RELEASE=${NAME}:${remove_distro_tag}
+        TARGET=$TARGET_RELEASE
+      fi
 
 prepare:
-  tags: *simple_runner
   stage: check_ros_distro
+  tags: *kaniko_runner
+  image: alpine:latest
   script:
     - |
       for distro in $ROS_DISTROS; do
         raw=${CI_COMMIT_REF_NAME//\//-}
-        if [[ "$distro" = "${raw%%-*}" ]] || [[ "$distro" = "${CI_COMMIT_REF_NAME}" ]] || [[ "$distro" = "${raw%%_*}" ]]; then
+        if [ "$distro" = "${raw%%-*}" ] || [ "$distro" = "${CI_COMMIT_REF_NAME}" ] || [ "$distro" = "${raw%%_*}" ]; then
           echo "found"
-          echo "ROS_DISTRO=$distro" >> build.env
+          echo "CURRENT_ROS_DISTRO=$distro" >> build.env
           break
         fi
       done;
-      if [[ $ROS_DISTRO = "" ]]; then
+      if [[ ! -z "$CURRENT_ROS_DISTRO" ]]; then
         exit 1
         echo "Not found"
       fi
@@ -61,18 +63,14 @@ prepare:
       dotenv: build.env
 
 .build:
-  stage: ${CI_JOB_NAME}
-  services: *docker_service
-  tags: *docker_runner
-  before_script:
-    - !reference [.common, docker_login]
+  stage: build
+  tags: *kaniko_runner
+  image:
+    name: gcr.io/kaniko-project/executor:v1.9.0-debug
+    entrypoint: [""]
   script:
-    - TARGET=${CI_REGISTRY_IMAGE}/${NAME}:${CI_COMMIT_REF_NAME//\//-};
-    - >
-      docker build
-      --cache-from $TARGET
-      --cache-from $TARGET_LATEST
-      --cache-from $TARGET_BRANCH
+    - /kaniko/executor
+      --context "${CI_PROJECT_DIR}/${FOLDER}"
       --build-arg SUFFIX
       --build-arg PREFIX
       --build-arg BUILDER_PREFIX
@@ -82,99 +80,92 @@ prepare:
       --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN
       --build-arg BUILDKIT_INLINE_CACHE=1
       --build-arg CMAKE_ARGS
-      -t ${PREFIX}${NAME}${SUFFIX} ${FOLDER}
-    - docker push ${PREFIX}${NAME}${SUFFIX}
+      --dockerfile "${CI_PROJECT_DIR}/${FOLDER}Dockerfile"
+      --no-push
+      --destination "${TARGET}"
+      --tarPath ${PREFIX//:/-}${NAME}${SUFFIX}.tar
   needs:
     - prepare
   variables:
     NAME: ${CI_JOB_NAME}_${ROS_DISTRO}
 
-
 phoenix_dependencies:
-  extends: .build
-  stage: phoenix_dependencies
+  extends:
+    - .build
+    - .on_allow_failure
+  before_script:
+    - TARGET=${PREFIX}${NAME}${SUFFIX}
+    - !reference [.common, create_release_tag_script]
   variables:
-    FOLDER: .
+    NAME: phoenix_dependencies_${ROS_DISTRO}
+    FOLDER: ""
+  parallel:
+    matrix:
+      - ROS_DISTRO:
+        - $CURRENT_ROS_DISTRO
+  artifacts:
+    name: ${NAME}
+    paths:
+      - ${PREFIX//:/-}${NAME}${SUFFIX}.tar
+    expire_in: 10 minutes
 
 .publish:
   stage: publish
-  services: *docker_service
-  tags: *docker_runner
-  before_script:
-    - !reference [.common, docker_login]
-    - docker pull ${PREFIX}${NAME}${SUFFIX}
+  tags: *kaniko_runner
+  image: alpine:latest
   script:
-    - |
-      TARGET=${CI_REGISTRY_IMAGE}/${NAME}:${CI_COMMIT_REF_NAME//\//-}
-      if [ "$CI_COMMIT_REF_NAME" = "main" ]; then
-        TARGET=$TARGET_LATEST
-      fi
-      if [ "$CI_COMMIT_REF_NAME" = "${ROS_DISTRO}/devel" ]; then
-        TARGET=$TARGET_LATEST
-      fi
-      if [ $CI_COMMIT_TAG ]; then
-        convert_tag=${CI_COMMIT_TAG//\//-}
-        distro_prefix=${ROS_DISTRO}-
-        remove_distro_tag=${convert_tag#"$distro_prefix"}
-        TARGET_RELEASE=${CI_REGISTRY_IMAGE}/${NAME}:${remove_distro_tag}
-        TARGET=$TARGET_RELEASE
-      fi
-      docker tag ${PREFIX}${NAME}${SUFFIX} ${TARGET} && docker push ${TARGET}
+    - TARGET=${NAME}:${CI_COMMIT_REF_NAME//\//-}
+    - !reference [.common, create_release_tag_script]
+    - mkdir ${ARTIFACT_PATH}
+    - mv ${PREFIX//:/-}${NAME}${SUFFIX}.tar ${ARTIFACT_PATH}/${TARGET//:/-}.tar
   needs:
+    - build
     - prepare
-  rules :
-    - if: $CI_COMMIT_TAG != null || $CI_COMMIT_REF_NAME =~ /devel/
-      when: on_success
+  artifacts:
+    name: ${NAME}
+    paths:
+      - ${ARTIFACT_PATH}/*.tar
+    expire_in: 10 minutes
 
 publish:phoenix_dependencies:
-  extends: .publish
+  extends:
+    - .publish
+    - .on_merge_tag
   variables:
     NAME: phoenix_dependencies_${ROS_DISTRO}
   needs:
     - prepare
     - phoenix_dependencies
+  parallel:
+    matrix:
+      - ROS_DISTRO:
+        - $CURRENT_ROS_DISTRO
 
 trigger_pipeline_in_bridge:
-  tags: *simple_runner
+  tags: *kaniko_runner
   stage: trigger_bridge
+  extends:
+    - .on_merge_tag
   before_script:
     - apk add --no-cache curl
   script:
     - |
       for ros_distro in $ROS2_DISTROS; do
-        if [ "$ros_distro" = "$ROS_DISTRO" ]; then
+        if [ "$ros_distro" = "$CURRENT_ROS_DISTRO" ]; then
           ros_version=ros2
           break
         fi
       done
       for ros_distro in $ROS1_DISTROS; do
-        if [ "$ros_distro" = "$ROS_DISTRO" ]; then
+        if [ "$ros_distro" = "$CURRENT_ROS_DISTRO" ]; then
           ros_version=ros1
           break
         fi
       done
-    - curl -X POST --fail -F token=$TRIGGER_BRIDGE_TOKEN -F ref=$ros_version/devel ${CI_API_V4_URL}/projects/31644/trigger/pipeline
-  rules :
-    - if: $CI_COMMIT_TAG != null || $CI_COMMIT_REF_NAME =~ /devel/
-      when: on_success
+    - curl -X POST --fail -F token=$TRIGGER_BRIDGE_TOKEN -F ref=$ros_version/devel ${CI_API_V4_URL}/projects/${BRIDGE_PROJECT_NUMBER}/trigger/pipeline
 
-
-cleanup_job:
-  image: alpine:latest
-  stage: cleanup
-  tags: *simple_runner
-  before_script:
-    - apk add jq
-    - apk add --no-cache curl
-  script:
-    - >
-      curl -H "PRIVATE-TOKEN: $API_TOKEN" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/registry/repositories" > output.json
-    - echo "CI_PIPELINE_ID=$CI_PIPELINE_ID"
-    - cat output.json
-    - >
-      image_id=$(jq --arg CI_PIPELINE_ID "$CI_PIPELINE_ID" '.[] | select(.name==$CI_PIPELINE_ID) | .id' output.json)
-    - |
-      if [[ ! -z "$image_id" ]]; then
-        curl --request DELETE -H "PRIVATE-TOKEN: $API_TOKEN" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/registry/repositories/${image_id}"
-      fi
-  when: always
+stages:
+  - check_ros_distro
+  - build
+  - publish
+  - trigger_bridge
