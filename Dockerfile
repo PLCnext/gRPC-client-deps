@@ -9,6 +9,7 @@ FROM base as pre_build
 COPY . /root/ws/src/
 COPY --from=builder workspace.bash /builder/workspace.bash
 RUN cd /root/ws/src/plcnext_deps && \
+    chmod +x dep_copy21.sh && \
     ./dep_copy21.sh ${ROS_DISTRO} && \
     rm -rf /var/lib/apt/lists/*
 
