@@ -2,14 +2,14 @@
 ARG BUILDER_SUFFIX=
 ARG BUILDER_PREFIX=
 ARG ROS_DISTRO=
-FROM public.ecr.aws/docker/library/ros:${ROS_DISTRO}-ros-core as base
+FROM --platform=arm32v7 public.ecr.aws/docker/library/ros:${ROS_DISTRO}-ros-core as base
 FROM ${BUILDER_PREFIX}builder${BUILDER_SUFFIX} as builder
 
 FROM base as pre_build
 COPY . /root/ws/src/
 COPY --from=builder workspace.bash /builder/workspace.bash
 RUN cd /root/ws/src/plcnext_deps && \
-    ./dep_copy.sh ${ROS_DISTRO} && \
+    ./dep_copy21.sh ${ROS_DISTRO} && \
     rm -rf /var/lib/apt/lists/*
 
 FROM pre_build as build
