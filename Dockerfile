@@ -7,6 +7,7 @@ FROM ${BUILDER_PREFIX}builder${BUILDER_SUFFIX} as builder
 
 FROM base as pre_build
 COPY . /root/ws/src/
+RUN rm -r /root/ws/src/plcnext_deps/axcf3_deps  /root/ws/src/plcnext_deps/dep_copy31.sh
 COPY --from=builder workspace.bash /builder/workspace.bash
 RUN cd /root/ws/src/plcnext_deps && \
     chmod +x dep_copy21.sh && \
