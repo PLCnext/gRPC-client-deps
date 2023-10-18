@@ -3,7 +3,7 @@
 ARG BUILDER_SUFFIX=
 ARG BUILDER_PREFIX=
 ARG ROS_DISTRO=
-FROM arm32v7/ros:${ROS_DISTRO}ros-core as base
+FROM arm32v7/ros:${ROS_DISTRO}-ros-core as base
 FROM ${BUILDER_PREFIX}builder${BUILDER_SUFFIX} as builder
 
 FROM base as pre_build
