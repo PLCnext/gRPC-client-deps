@@ -22,7 +22,8 @@ set (TARGETNAME "AXCF2152")
 set (CMAKE_TOOLCHAIN_FILE ${TOOLCHAIN}/toolchain.cmake CACHE STRING "PLCnext toolchain file")
 set (ARP_TOOLCHAIN_ROOT ${TOOLCHAIN} CACHE STRING "PLCnext toolchain root directory")
 set (ARP_DEVICE ${TARGETNAME} CACHE STRING "PLCnext target device name")
-
+message("DEBUG_BUILD")
+message(${CMAKE_TOOLCHAIN_FILE})
 set (WILDCARD_SOURCE *.cpp *.cc)
 set (WILDCARD_HEADER *.h *.hpp *.hxx)
 
