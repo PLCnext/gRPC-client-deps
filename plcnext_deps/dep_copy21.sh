@@ -18,7 +18,7 @@ cp -rv axcf2_deps/include/grpc++ /opt/ros/$ROS_DISTRO/include/grpc++
 
 # Shared libraries
 
-cp -v axc2_deps/lib/libabsl_flags_usage.so /opt/ros/$ROS_DISTRO/lib
+cp -v axcf2_deps/lib/libabsl_flags_usage.so /opt/ros/$ROS_DISTRO/lib
 cp -v axcf2_deps/lib/libgpr.so.23.0.0 /opt/ros/$ROS_DISTRO/lib
 cp -v axcf2_deps/lib/libgrpc++_unsecure.so /opt/ros/$ROS_DISTRO/lib
 cp -v axcf2_deps/lib/libabsl_synchronization.so /opt/ros/$ROS_DISTRO/lib
