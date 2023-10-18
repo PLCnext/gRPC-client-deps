@@ -15,9 +15,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-set (TOOLCHAIN "/opt/pxc/sdks/AXCF3152/2022.0")
-set (ARPVERSION "2022.0.5")
-set (TARGETNAME "AXCF3152")
+set (TOOLCHAIN "/opt/pxc/sdks/AXCF2152/2022.6.0")
+set (ARPVERSION "2022.6.0.43")
+set (TARGETNAME "AXCF2152")
 
 set (CMAKE_TOOLCHAIN_FILE ${TOOLCHAIN}/toolchain.cmake CACHE STRING "PLCnext toolchain file")
 set (ARP_TOOLCHAIN_ROOT ${TOOLCHAIN} CACHE STRING "PLCnext toolchain root directory")
