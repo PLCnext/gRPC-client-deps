@@ -73,7 +73,7 @@ set_target_properties(gRPC::grpc++_error_details PROPERTIES
   )
 
 list(APPEND _IMPORT_CHECK_TARGETS gRPC::grpc++_error_details )
-list(APPEND _IMPORT_CHECK_FILES_FOR_gRPC::grpc++_error_details "${_IMPORT_PREFIX}/lib/libgrpc++_error_details.so.1.36.4" )
+list(APPEND _IMPORT_CHECK_FILES_FOR_gRPC::grpc++_error_details "${_IMPORT_PREFIX}/lib/libgrpc++_error_details.so.1.45.2" )
 
 # Import target "gRPC::grpc++_reflection" for configuration ""
 set_property(TARGET gRPC::grpc++_reflection APPEND PROPERTY IMPORTED_CONFIGURATIONS NOCONFIG)
